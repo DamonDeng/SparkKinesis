@@ -2,7 +2,6 @@
 /* SimpleApp.scala */
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
-import org.apache.spark.SparkConf
 import org.apache.spark.{Logging, SparkConf}
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.streaming.{Milliseconds, StreamingContext}
@@ -19,9 +18,9 @@ import com.amazonaws.services.kinesis.model.PutRecordRequest
 object KinesisTest {
   def main(args: Array[String]) {
 
-    val streamName="testingStream"
-    val appName="baseonSample"
-    val endpointUrl="kinesis.ap-southeast-1.amazonaws.com"
+    val streamName=args(0)  // the first arg should be stream name such as  "testingStream"
+    val appName=args(1) // the second arg should be kcl app name such as "baseonSample"
+    val endpointUrl=args(2) // the kinesis endpoint such as the end point for sig: "kinesis.ap-southeast-1.amazonaws.com"
 
     val credentials = new DefaultAWSCredentialsProviderChain().getCredentials()
     require(credentials != null,
