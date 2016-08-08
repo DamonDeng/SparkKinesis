@@ -105,9 +105,9 @@ object KinesisTest {
 
     val lines =unionStreams.map(byteArray => new String(byteArray))
 
-    val votes = lines.filter(line => line.startsWith("vot|")).map(line => line.substring(3))
+    val votes = lines.filter(line => line.startsWith("vot|")).map(line => line.substring(4))
 
-    val messages = lines.filter(line => line.startsWith("msg|")).map(line => line.substring(3))
+    val messages = lines.filter(line => line.startsWith("msg|")).map(line => line.substring(4))
 
     val words = messages.flatMap(line => seperateWithIKAnalyzer(line))
 
