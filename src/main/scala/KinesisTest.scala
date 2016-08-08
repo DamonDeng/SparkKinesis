@@ -102,13 +102,22 @@ object KinesisTest {
 
     // Convert each line of Array[Byte] to String, and split into words
     //val lines = unionStreams.map(input => "Starting of the String" + new String(input) + "end of the string.")
-    val words = unionStreams.flatMap(byteArray => seperateWithIKAnalyzer(new String(byteArray)))
+
+    val lines =unionStreams.map(byteArray => new String(byteArray))
+
+    val votes = lines.filter(line => line.startsWith("vot|")).map(line => line.substring(3))
+
+    val messages = lines.filter(line => line.startsWith("msg|")).map(line => line.substring(3))
+
+    val words = messages.flatMap(line => seperateWithIKAnalyzer(line))
 
     // Map each word to a (word, 1) tuple so we can reduce by key to count the words
     val wordCounts = words.map(word => (word, 1)).reduceByKey(_ + _)
 
+    val voteCounts = votes.map(word => (word,1)).reduceByKey(_ + _)
     // Print the first 10 wordCounts
     wordCounts.print()
+    voteCounts.print()
 
     //lines.print()
 
