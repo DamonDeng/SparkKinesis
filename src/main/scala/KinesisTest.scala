@@ -20,6 +20,9 @@ import org.wltea.analyzer.lucene.IKAnalyzer
 
 import scala.collection.mutable.ListBuffer
 
+import java.io.StringReader
+
+
 
 object KinesisTest {
 
@@ -86,7 +89,7 @@ object KinesisTest {
     val ssc = new StreamingContext(sparkConfig, batchInterval)
 
     println("new version 1.0.1")
-    
+
 
     // Create the Kinesis DStreams
     val kinesisStreams = (0 until numStreams).map { i =>
@@ -99,7 +102,7 @@ object KinesisTest {
 
     // Convert each line of Array[Byte] to String, and split into words
     //val lines = unionStreams.map(input => "Starting of the String" + new String(input) + "end of the string.")
-    words = unionStreams.flatMap(byteArray => seperateWithIKAnalyzer(new String(byteArray)))
+    val words = unionStreams.flatMap(byteArray => seperateWithIKAnalyzer(new String(byteArray)))
 
     // Map each word to a (word, 1) tuple so we can reduce by key to count the words
     val wordCounts = words.map(word => (word, 1)).reduceByKey(_ + _)
