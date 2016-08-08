@@ -1,5 +1,8 @@
 
 /* SimpleApp.scala */
+
+import org.apache.lucene.analysis.TokenStream
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import org.apache.spark.{Logging, SparkConf}
@@ -13,9 +16,38 @@ import com.amazonaws.regions.RegionUtils
 import com.amazonaws.services.kinesis.AmazonKinesisClient
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionInStream
 import com.amazonaws.services.kinesis.model.PutRecordRequest
+import org.wltea.analyzer.lucene.IKAnalyzer
+
+import scala.collection.mutable.ListBuffer
 
 
 object KinesisTest {
+
+  def seperateWithIKAnalyzer(inputString:String): Array[String] ={
+
+    val iKAnalyzer = new IKAnalyzer(true)
+
+    val inputStreamReader = new StringReader(inputString)
+
+    val ts:TokenStream = iKAnalyzer.tokenStream("",inputStreamReader)
+    val term:CharTermAttribute=ts.getAttribute(classOf[CharTermAttribute])
+
+    var result = new ListBuffer[String]()
+
+
+    while(ts.incrementToken()){
+      //System.out.print(term.toString()+"|")
+      result+=term.toString
+    }
+    iKAnalyzer.close()
+    inputStreamReader.close()
+
+    result.toArray
+
+
+  }
+
+
   def main(args: Array[String]) {
 
     val streamName=args(0)  // the first arg should be stream name such as  "testingStream"
@@ -53,7 +85,7 @@ object KinesisTest {
     val sparkConfig = new SparkConf().setMaster("local[4]").setAppName("KinesisSample")
     val ssc = new StreamingContext(sparkConfig, batchInterval)
 
-    println("new version 1.0")
+    println("new version 1.0.1")
 
     // Create the Kinesis DStreams
     val kinesisStreams = (0 until numStreams).map { i =>
@@ -65,16 +97,16 @@ object KinesisTest {
     val unionStreams = ssc.union(kinesisStreams)
 
     // Convert each line of Array[Byte] to String, and split into words
-    val lines = unionStreams.map(input => "Starting of the String" + new String(input) + "end of the string.")
-    //words = unionStreams.flatMap(byteArray => new String(byteArray).split(","))
+    //val lines = unionStreams.map(input => "Starting of the String" + new String(input) + "end of the string.")
+    words = unionStreams.flatMap(byteArray => seperateWithIKAnalyzer(new String(byteArray)))
 
     // Map each word to a (word, 1) tuple so we can reduce by key to count the words
-    //val wordCounts = words.map(word => (word, 1)).reduceByKey(_ + _)
+    val wordCounts = words.map(word => (word, 1)).reduceByKey(_ + _)
 
     // Print the first 10 wordCounts
-    //wordCounts.print()
+    wordCounts.print()
 
-    lines.print()
+    //lines.print()
 
     // try to print a line here, it doesn't happend in the stream:
     println("end of the program")
