@@ -86,6 +86,7 @@ object KinesisTest {
     val ssc = new StreamingContext(sparkConfig, batchInterval)
 
     println("new version 1.0.1")
+    
 
     // Create the Kinesis DStreams
     val kinesisStreams = (0 until numStreams).map { i =>
