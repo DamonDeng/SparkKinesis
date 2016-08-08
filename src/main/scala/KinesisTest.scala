@@ -65,19 +65,19 @@ object KinesisTest {
     val unionStreams = ssc.union(kinesisStreams)
 
     // Convert each line of Array[Byte] to String, and split into words
-    val lines = unionStreams.map(input => "Starting of the String" + new String(input) + "end of the string.")
-    //words = unionStreams.flatMap(byteArray => new String(byteArray).split(","))
+    //val lines = unionStreams.map(input => "Starting of the String" + new String(input) + "end of the string.")
+    val words = unionStreams.flatMap(byteArray => new String(byteArray).split(" "))
 
     // Map each word to a (word, 1) tuple so we can reduce by key to count the words
-    //val wordCounts = words.map(word => (word, 1)).reduceByKey(_ + _)
+    val wordCounts = words.map(word => (word, 1)).reduceByKey(_ + _)
 
     // Print the first 10 wordCounts
-    //wordCounts.print()
+    wordCounts.print()
 
-    lines.print()
+    //lines.print()
 
     // try to print a line here, it doesn't happend in the stream:
-    println("end of the program")
+    //println("end of the program")
 
     // Start the streaming context and await termination
     ssc.start()
