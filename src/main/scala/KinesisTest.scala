@@ -58,7 +58,7 @@ object KinesisTest {
 
   }
 
-  def writeToDynamoDB(inputKey:String, inputString:String): Unit ={
+  def writeToDynamoDB(inputKey:String, inputString:String): String ={
 
     val dynamoDBClient = new AmazonDynamoDBClient(new InstanceProfileCredentialsProvider())
     dynamoDBClient.setRegion(Region.getRegion(Regions.fromName("ap-southeast-1")))
@@ -68,6 +68,7 @@ object KinesisTest {
 
     testingTable.putItem(item)
 
+    "Done!"+inputKey;
 
   }
 
@@ -142,11 +143,12 @@ object KinesisTest {
     //voteResult.map(voteResultRecord => writeToDynamoDB(voteResultRecord._1, voteResultRecord._2))
 
 
-    voteCounts.map(eachVoteCount => writeToDynamoDB(eachVoteCount._1, " "+eachVoteCount._2))
+    val printresult = voteCounts.map(eachVoteCount => writeToDynamoDB(eachVoteCount._1, " "+eachVoteCount._2))
 
     // Print the first 10 wordCounts
     wordCounts.print()
     voteCounts.print()
+    printresult.print()
 
 
 
