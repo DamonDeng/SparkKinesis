@@ -137,12 +137,12 @@ object KinesisTest {
 
     val voteCounts = votes.map(word => (word,1)).reduceByKey(_ + _)
 
-    val voteResult = voteCounts.map(eachVoteCount => ("vote",eachVoteCount.toString())).reduceByKey(_ + _)
+    //val voteResult = voteCounts.map(eachVoteCount => ("vote",eachVoteCount.toString())).reduceByKey(_ + _)
 
-    voteResult.map(voteResultRecord => writeToDynamoDB(voteResultRecord._1, voteResultRecord._2))
+    //voteResult.map(voteResultRecord => writeToDynamoDB(voteResultRecord._1, voteResultRecord._2))
 
 
-
+    voteCounts.map(eachVoteCount => writeToDynamoDB(eachVoteCount._1, " "+eachVoteCount._2))
 
     // Print the first 10 wordCounts
     wordCounts.print()
