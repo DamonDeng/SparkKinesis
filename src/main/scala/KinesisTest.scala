@@ -6,6 +6,7 @@ import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import org.apache.spark.{Logging, SparkConf}
+import org.apache.spark.rdd.RDD
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.streaming.{Seconds, Milliseconds, StreamingContext}
 import org.apache.spark.streaming.dstream.DStream.toPairDStreamFunctions
@@ -137,6 +138,11 @@ object KinesisTest {
     //val wordCounts = words.map(word => (word, 1)).reduceByKey(_ + _)
     val wordCounts = words.map(word => (word, 1)).reduceByKeyAndWindow((a:Int,b:Int) => (a + b),Seconds(300),Seconds(6) )
 
+    val sortedWordCounts = wordCounts.transform(rdd => {
+      val list = rdd.sortBy(_._2, false).take(30)
+      rdd.filter(list.contains)
+    })
+
 
     //val voteCounts = votes.map(word => (word,1)).reduceByKey(_ + _)
     val voteCounts = votes.map(word => (word,1)).reduceByKeyAndWindow((a:Int,b:Int) => (a + b),Seconds(300),Seconds(6) )
@@ -151,7 +157,7 @@ object KinesisTest {
     //val printresult = voteCounts.map(eachVoteCount => writeToDynamoDB(eachVoteCount._1, " "+eachVoteCount._2))
 
     // Print the first 10 wordCounts
-    wordCounts.print()
+    sortedWordCounts.print()
     voteCounts.print()
     resultTrigger.print()
 
