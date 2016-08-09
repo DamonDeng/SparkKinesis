@@ -7,7 +7,7 @@ import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import org.apache.spark.{Logging, SparkConf}
 import org.apache.spark.storage.StorageLevel
-import org.apache.spark.streaming.{Milliseconds, StreamingContext}
+import org.apache.spark.streaming.{Seconds, Milliseconds, StreamingContext}
 import org.apache.spark.streaming.dstream.DStream.toPairDStreamFunctions
 import org.apache.spark.streaming.kinesis.KinesisUtils
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionInStream
@@ -134,13 +134,18 @@ object KinesisTest {
     val words = messages.flatMap(line => seperateWithIKAnalyzer(line))
 
     // Map each word to a (word, 1) tuple so we can reduce by key to count the words
-    val wordCounts = words.map(word => (word, 1)).reduceByKey(_ + _)
+    //val wordCounts = words.map(word => (word, 1)).reduceByKey(_ + _)
+    val wordCounts = words.map(word => (word, 1)).reduceByKeyAndWindow((a:Int,b:Int) => (a + b),Seconds(300),Seconds(5) )
 
-    val voteCounts = votes.map(word => (word,1)).reduceByKey(_ + _)
 
-    val voteResult = voteCounts.map(eachVoteCount => ("vote",eachVoteCount.toString())).reduceByKey(_ + _)
+    //val voteCounts = votes.map(word => (word,1)).reduceByKey(_ + _)
+    val voteCounts = votes.map(word => (word,1)).reduceByKeyAndWindow((a:Int,b:Int) => (a + b),Seconds(300),Seconds(5) )
 
-    val resultTriger = voteResult.map(voteResultRecord => writeToDynamoDB(voteResultRecord._1, voteResultRecord._2))
+
+    val voteResult = voteCounts.map(eachVoteCount => ("vote","\"" + eachVoteCount._1 +"\":"+eachVoteCount._2)).reduceByKey((a:String,b:String) => a +","+b)
+
+
+    val resultTrigger = voteResult.map(voteResultRecord => writeToDynamoDB(voteResultRecord._1, voteResultRecord._2))
 
 
     //val printresult = voteCounts.map(eachVoteCount => writeToDynamoDB(eachVoteCount._1, " "+eachVoteCount._2))
@@ -148,7 +153,7 @@ object KinesisTest {
     // Print the first 10 wordCounts
     wordCounts.print()
     voteCounts.print()
-    resultTriger.print()
+    resultTrigger.print()
 
 
 
