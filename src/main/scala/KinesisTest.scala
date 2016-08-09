@@ -110,7 +110,7 @@ object KinesisTest {
     val sparkConfig = new SparkConf().setMaster("local[4]").setAppName("KinesisSample")
     val ssc = new StreamingContext(sparkConfig, batchInterval)
 
-    println("new version 1.0.1.3")
+    println("new version 1.0.1.4")
 
 
     // Create the Kinesis DStreams
@@ -135,11 +135,11 @@ object KinesisTest {
 
     // Map each word to a (word, 1) tuple so we can reduce by key to count the words
     //val wordCounts = words.map(word => (word, 1)).reduceByKey(_ + _)
-    val wordCounts = words.map(word => (word, 1)).reduceByKeyAndWindow((a:Int,b:Int) => (a + b),Seconds(300),Seconds(5) )
+    val wordCounts = words.map(word => (word, 1)).reduceByKeyAndWindow((a:Int,b:Int) => (a + b),Seconds(300),Seconds(6) )
 
 
     //val voteCounts = votes.map(word => (word,1)).reduceByKey(_ + _)
-    val voteCounts = votes.map(word => (word,1)).reduceByKeyAndWindow((a:Int,b:Int) => (a + b),Seconds(300),Seconds(5) )
+    val voteCounts = votes.map(word => (word,1)).reduceByKeyAndWindow((a:Int,b:Int) => (a + b),Seconds(300),Seconds(6) )
 
 
     val voteResult = voteCounts.map(eachVoteCount => ("vote","\"" + eachVoteCount._1 +"\":"+eachVoteCount._2)).reduceByKey((a:String,b:String) => a +","+b)
