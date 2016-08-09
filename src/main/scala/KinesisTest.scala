@@ -22,6 +22,14 @@ import scala.collection.mutable.ListBuffer
 
 import java.io.StringReader
 
+import com.amazonaws.services.dynamodbv2.document.{AttributeUpdate, DynamoDB, Item}
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
+
+import com.amazonaws.regions.Region
+import com.amazonaws.regions.Regions
+import com.amazonaws.auth.InstanceProfileCredentialsProvider
+
+
 
 
 object KinesisTest {
@@ -46,6 +54,19 @@ object KinesisTest {
     inputStreamReader.close()
 
     result.toArray
+
+
+  }
+
+  def writeToDynamoDB(inputKey:String, inputString:String): Unit ={
+
+    val dynamoDBClient = new AmazonDynamoDBClient(new InstanceProfileCredentialsProvider())
+    dynamoDBClient.setRegion(Region.getRegion(Regions.fromName("ap-southeast-1")))
+    val dynamoDB = new DynamoDB(dynamoDBClient)
+    val testingTable = dynamoDB.getTable("SparkTest")
+    val item = new Item().withPrimaryKey("ItemKey", inputKey).withString("Company", inputString)
+
+    testingTable.putItem(item)
 
 
   }
@@ -115,9 +136,21 @@ object KinesisTest {
     val wordCounts = words.map(word => (word, 1)).reduceByKey(_ + _)
 
     val voteCounts = votes.map(word => (word,1)).reduceByKey(_ + _)
+
+    val voteResult = voteCounts.map(eachVoteCount => ("vote",eachVoteCount.toString())).reduceByKey(_ + _)
+
+    voteResult.map(voteResultRecord => writeToDynamoDB(voteResultRecord._1, voteResultRecord._2))
+
+
+
+
     // Print the first 10 wordCounts
     wordCounts.print()
     voteCounts.print()
+
+
+
+
 
     //lines.print()
 
