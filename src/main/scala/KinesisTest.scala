@@ -136,10 +136,10 @@ object KinesisTest {
 
     // Map each word to a (word, 1) tuple so we can reduce by key to count the words
     //val wordCounts = words.map(word => (word, 1)).reduceByKey(_ + _)
-    val wordCounts = words.map(word => (word, 1)).reduceByKeyAndWindow((a:Int,b:Int) => (a + b),Seconds(300),Seconds(6) )
+    val wordCounts = words.map(word => (word, 1)).reduceByKeyAndWindow((a:Int,b:Int) => (a + b),Seconds(60),Seconds(6) )
 
     val sortedWordCounts = wordCounts.transform(rdd => {
-      val list = rdd.sortBy(_._2, false).map(input => input._1).take(3)
+      val list = rdd.sortBy(_._2, false).map(input => input._1).take(10)
       val newRDD = rdd.filter(inputItem => list.contains(inputItem._1))
       newRDD
     })
@@ -151,17 +151,18 @@ object KinesisTest {
 
     val voteResult = voteCounts.map(eachVoteCount => ("vote","\"" + eachVoteCount._1 +"\":"+eachVoteCount._2)).reduceByKey((a:String,b:String) => a +","+b)
 
+    val wordResult = sortedWordCounts.map(eachWordCount => ("word","\"" + eachWordCount._1 +"\":"+eachWordCount._2)).reduceByKey((a:String,b:String) => a +","+b)
 
-    val resultTrigger = voteResult.map(voteResultRecord => writeToDynamoDB(voteResultRecord._1, voteResultRecord._2))
+    val voteResultTrigger = voteResult.map(voteResultRecord => writeToDynamoDB(voteResultRecord._1, voteResultRecord._2))
 
+    val wordResultTrigger = wordResult.map(wordResultRecord => writeToDynamoDB(wordResultRecord._1, wordResultRecord._2))
 
-    //val printresult = voteCounts.map(eachVoteCount => writeToDynamoDB(eachVoteCount._1, " "+eachVoteCount._2))
 
     // Print the first 10 wordCounts
     sortedWordCounts.print()
     voteCounts.print()
-    resultTrigger.print()
-
+    voteResultTrigger.print()
+    wordResultTrigger.print()
 
 
 
