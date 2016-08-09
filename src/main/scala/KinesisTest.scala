@@ -139,8 +139,9 @@ object KinesisTest {
     val wordCounts = words.map(word => (word, 1)).reduceByKeyAndWindow((a:Int,b:Int) => (a + b),Seconds(300),Seconds(6) )
 
     val sortedWordCounts = wordCounts.transform(rdd => {
-      val list = rdd.sortBy(_._2, false).take(30)
-      rdd.filter(list.contains)
+      val list = rdd.sortBy(_._2, false).map(input => input._1).take(3)
+      val newRDD = rdd.filter(inputItem => list.contains(inputItem._1))
+      newRDD
     })
 
 
