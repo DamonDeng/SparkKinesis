@@ -110,7 +110,7 @@ object KinesisTest {
     val sparkConfig = new SparkConf().setMaster("local[4]").setAppName("KinesisSample")
     val ssc = new StreamingContext(sparkConfig, batchInterval)
 
-    println("new version 1.0.1.1")
+    println("new version 1.0.1.2")
 
 
     // Create the Kinesis DStreams
