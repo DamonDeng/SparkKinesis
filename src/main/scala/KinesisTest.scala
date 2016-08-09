@@ -63,8 +63,8 @@ object KinesisTest {
     val dynamoDBClient = new AmazonDynamoDBClient(new InstanceProfileCredentialsProvider())
     dynamoDBClient.setRegion(Region.getRegion(Regions.fromName("ap-southeast-1")))
     val dynamoDB = new DynamoDB(dynamoDBClient)
-    val testingTable = dynamoDB.getTable("SparkTest")
-    val item = new Item().withPrimaryKey("ItemKey", inputKey).withString("Company", inputString)
+    val testingTable = dynamoDB.getTable("VoteCount")
+    val item = new Item().withPrimaryKey("Target", inputKey).withString("Result", inputString)
 
     testingTable.putItem(item)
 
@@ -110,7 +110,7 @@ object KinesisTest {
     val sparkConfig = new SparkConf().setMaster("local[4]").setAppName("KinesisSample")
     val ssc = new StreamingContext(sparkConfig, batchInterval)
 
-    println("new version 1.0.1.2")
+    println("new version 1.0.1.3")
 
 
     // Create the Kinesis DStreams
@@ -138,17 +138,17 @@ object KinesisTest {
 
     val voteCounts = votes.map(word => (word,1)).reduceByKey(_ + _)
 
-    //val voteResult = voteCounts.map(eachVoteCount => ("vote",eachVoteCount.toString())).reduceByKey(_ + _)
+    val voteResult = voteCounts.map(eachVoteCount => ("vote",eachVoteCount.toString())).reduceByKey(_ + _)
 
-    //voteResult.map(voteResultRecord => writeToDynamoDB(voteResultRecord._1, voteResultRecord._2))
+    val resultTriger = voteResult.map(voteResultRecord => writeToDynamoDB(voteResultRecord._1, voteResultRecord._2))
 
 
-    val printresult = voteCounts.map(eachVoteCount => writeToDynamoDB(eachVoteCount._1, " "+eachVoteCount._2))
+    //val printresult = voteCounts.map(eachVoteCount => writeToDynamoDB(eachVoteCount._1, " "+eachVoteCount._2))
 
     // Print the first 10 wordCounts
     wordCounts.print()
     voteCounts.print()
-    printresult.print()
+    resultTriger.print()
 
 
 
