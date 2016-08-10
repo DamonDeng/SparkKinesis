@@ -132,7 +132,9 @@ object KinesisTest {
 
     val messages = lines.filter(line => line.startsWith("msg|")).map(line => line.substring(4))
 
-    val words = messages.flatMap(line => seperateWithIKAnalyzer(line))
+    val stopWords = StopWords.getStopWords();
+
+    val words = messages.flatMap(line => seperateWithIKAnalyzer(line)).map(word => !stopWords.contains(word))
 
     // Map each word to a (word, 1) tuple so we can reduce by key to count the words
     //val wordCounts = words.map(word => (word, 1)).reduceByKey(_ + _)
