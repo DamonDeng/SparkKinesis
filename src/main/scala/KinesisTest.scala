@@ -60,7 +60,14 @@ object KinesisTest {
 
   }
 
-  def writeToDynamoDB(targetTable:Table, inputKey:String, inputString:String): String ={
+  def writeToDynamoDB(dynamoRegionName:String, inputKey:String, inputString:String): String ={
+
+    //create the dynamoDB Client and table to store the result
+    val dynamoDBClient = new AmazonDynamoDBClient(new InstanceProfileCredentialsProvider())
+    dynamoDBClient.setRegion(Region.getRegion(Regions.fromName(dynamoRegionName)))
+    val dynamoDB = new DynamoDB(dynamoDBClient)
+    val targetTable = dynamoDB.getTable("VoteCount")
+
 
     val item = new Item().withPrimaryKey("Target", inputKey).withString("Result", inputString)
 
@@ -92,11 +99,7 @@ object KinesisTest {
     kinesisClient.setEndpoint(endpointUrl)
     val numShards = kinesisClient.describeStream(streamName).getStreamDescription().getShards().size
 
-    //create the dynamoDB Client and table to store the result
-    val dynamoDBClient = new AmazonDynamoDBClient(new InstanceProfileCredentialsProvider())
-    dynamoDBClient.setRegion(Region.getRegion(Regions.fromName(dynamoRegionName)))
-    val dynamoDB = new DynamoDB(dynamoDBClient)
-    val targetTable = dynamoDB.getTable("VoteCount")
+
 
 
 
@@ -122,7 +125,7 @@ object KinesisTest {
     val sparkConfig = new SparkConf().setMaster("local[4]").setAppName("KinesisSample")
     val ssc = new StreamingContext(sparkConfig, batchInterval)
 
-    println("new version 1.0.1.4")
+    println("new version 1.0.1.5")
 
 
     // Create the Kinesis DStreams
@@ -166,9 +169,9 @@ object KinesisTest {
 
     val wordResult = sortedWordCounts.map(eachWordCount => ("word","\"" + eachWordCount._1 +"\":"+eachWordCount._2)).reduceByKey((a:String,b:String) => a +","+b)
 
-    val voteResultTrigger = voteResult.map(voteResultRecord => writeToDynamoDB(targetTable,voteResultRecord._1, voteResultRecord._2))
+    val voteResultTrigger = voteResult.map(voteResultRecord => writeToDynamoDB(dynamoRegionName,voteResultRecord._1, voteResultRecord._2))
 
-    val wordResultTrigger = wordResult.map(wordResultRecord => writeToDynamoDB(targetTable,wordResultRecord._1, wordResultRecord._2))
+    val wordResultTrigger = wordResult.map(wordResultRecord => writeToDynamoDB(dynamoRegionName,wordResultRecord._1, wordResultRecord._2))
 
 
     // Print the first 10 wordCounts
