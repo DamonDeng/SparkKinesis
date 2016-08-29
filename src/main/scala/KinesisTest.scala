@@ -25,6 +25,7 @@ import java.io.StringReader
 
 import com.amazonaws.services.dynamodbv2.document.{AttributeUpdate, DynamoDB, Item}
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
+import com.amazonaws.services.dynamodbv2.document.Table
 
 import com.amazonaws.regions.Region
 import com.amazonaws.regions.Regions
@@ -59,17 +60,13 @@ object KinesisTest {
 
   }
 
-  def writeToDynamoDB(inputKey:String, inputString:String): String ={
+  def writeToDynamoDB(targetTable:Table, inputKey:String, inputString:String): String ={
 
-    val dynamoDBClient = new AmazonDynamoDBClient(new InstanceProfileCredentialsProvider())
-    dynamoDBClient.setRegion(Region.getRegion(Regions.fromName("ap-southeast-1")))
-    val dynamoDB = new DynamoDB(dynamoDBClient)
-    val testingTable = dynamoDB.getTable("VoteCount")
     val item = new Item().withPrimaryKey("Target", inputKey).withString("Result", inputString)
 
-    testingTable.putItem(item)
+    targetTable.putItem(item)
 
-    "Done!"+inputKey;
+    "Done!"+inputKey
 
   }
 
@@ -79,6 +76,13 @@ object KinesisTest {
     val streamName=args(0)  // the first arg should be stream name such as  "testingStream"
     val appName=args(1) // the second arg should be kcl app name such as "baseonSample"
     val endpointUrl=args(2) // the kinesis endpoint such as the end point for sig: "kinesis.ap-southeast-1.amazonaws.com"
+    val dynamoRegionName=args(3) // the region name of the Kinesis and DynamoDB, such as "ap-southeast-1"
+    val streamWindowIntervalStr:String = args(4)
+    val streamWindowWidthStr:String = args(5)
+
+    val streamWindowInternval = streamWindowIntervalStr.toInt
+    val streamWindowWidth = streamWindowWidthStr.toInt
+
 
     val credentials = new DefaultAWSCredentialsProviderChain().getCredentials()
     require(credentials != null,
@@ -87,6 +91,13 @@ object KinesisTest {
     val kinesisClient = new AmazonKinesisClient(credentials)
     kinesisClient.setEndpoint(endpointUrl)
     val numShards = kinesisClient.describeStream(streamName).getStreamDescription().getShards().size
+
+    //create the dynamoDB Client and table to store the result
+    val dynamoDBClient = new AmazonDynamoDBClient(new InstanceProfileCredentialsProvider())
+    dynamoDBClient.setRegion(Region.getRegion(Regions.fromName(dynamoRegionName)))
+    val dynamoDB = new DynamoDB(dynamoDBClient)
+    val targetTable = dynamoDB.getTable("VoteCount")
+
 
 
     // In this example, we're going to create 1 Kinesis Receiver/input DStream for each shard.
@@ -138,7 +149,7 @@ object KinesisTest {
 
     // Map each word to a (word, 1) tuple so we can reduce by key to count the words
     //val wordCounts = words.map(word => (word, 1)).reduceByKey(_ + _)
-    val wordCounts = words.map(word => (word, 1)).reduceByKeyAndWindow((a:Int,b:Int) => (a + b),Seconds(60),Seconds(6) )
+    val wordCounts = words.map(word => (word, 1)).reduceByKeyAndWindow((a:Int,b:Int) => (a + b),Seconds(streamWindowWidth),Seconds(streamWindowInternval) )
 
     val sortedWordCounts = wordCounts.transform(rdd => {
       val list = rdd.sortBy(_._2, false).map(input => input._1).take(10)
@@ -148,16 +159,16 @@ object KinesisTest {
 
 
     //val voteCounts = votes.map(word => (word,1)).reduceByKey(_ + _)
-    val voteCounts = votes.map(word => (word,1)).reduceByKeyAndWindow((a:Int,b:Int) => (a + b),Seconds(300),Seconds(6) )
+    val voteCounts = votes.map(word => (word,1)).reduceByKeyAndWindow((a:Int,b:Int) => (a + b),Seconds(streamWindowWidth),Seconds(streamWindowInternval) )
 
 
     val voteResult = voteCounts.map(eachVoteCount => ("vote","\"" + eachVoteCount._1 +"\":"+eachVoteCount._2)).reduceByKey((a:String,b:String) => a +","+b)
 
     val wordResult = sortedWordCounts.map(eachWordCount => ("word","\"" + eachWordCount._1 +"\":"+eachWordCount._2)).reduceByKey((a:String,b:String) => a +","+b)
 
-    val voteResultTrigger = voteResult.map(voteResultRecord => writeToDynamoDB(voteResultRecord._1, voteResultRecord._2))
+    val voteResultTrigger = voteResult.map(voteResultRecord => writeToDynamoDB(targetTable,voteResultRecord._1, voteResultRecord._2))
 
-    val wordResultTrigger = wordResult.map(wordResultRecord => writeToDynamoDB(wordResultRecord._1, wordResultRecord._2))
+    val wordResultTrigger = wordResult.map(wordResultRecord => writeToDynamoDB(targetTable,wordResultRecord._1, wordResultRecord._2))
 
 
     // Print the first 10 wordCounts
